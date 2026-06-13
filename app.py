@@ -2,105 +2,150 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ------------------------
-# Page Setting
-# ------------------------
-
 st.set_page_config(
-    page_title="Cafe Review Dashboard",
+    page_title="Cafe Review Analysis Dashboard",
+    page_icon="☕",
     layout="wide"
 )
 
-st.title("☕ Cafe Review Analysis Dashboard")
-
-st.markdown(
-    """
-    Analyze cafe ratings, review counts,
-    themes and customer preferences.
-    """
-)
-
-# ------------------------
-# Sample Data
-# ------------------------
+# -----------------------------
+# Sample Dataset
+# -----------------------------
 
 data = {
-    "Cafe": [
-        "Cafe A",
-        "Cafe B",
-        "Cafe C",
-        "Cafe D",
-        "Cafe E"
+    "Cafe":[
+        "Blue Bottle Yeoksam",
+        "Cafe Onion Seongsu",
+        "Anthracite Hapjeong",
+        "Layered Yeonnam",
+        "Knotted Cheongdam",
+        "Center Coffee",
+        "Terarosa",
+        "Fritz Coffee",
+        "Coffee Libre",
+        "Cafe Highwaist"
     ],
 
-    "District": [
+    "District":[
         "Gangnam",
+        "Seongsu",
+        "Hongdae",
         "Hongdae",
         "Gangnam",
         "Seongsu",
+        "Jongno",
+        "Jongno",
+        "Hongdae",
         "Hongdae"
     ],
 
-    "Theme": [
+    "Theme":[
         "Study",
-        "Dessert",
         "Instagram",
         "Study",
-        "Dessert"
+        "Dessert",
+        "Dessert",
+        "Study",
+        "Study",
+        "Traditional",
+        "Specialty",
+        "Instagram"
     ],
 
-    "Rating": [
+    "Rating":[
         4.8,
-        4.5,
+        4.9,
         4.7,
-        4.3,
-        4.6
+        4.6,
+        4.8,
+        4.7,
+        4.8,
+        4.6,
+        4.8,
+        4.7
     ],
 
-    "ReviewCount": [
-        520,
-        430,
-        380,
-        250,
-        410
+    "ReviewCount":[
+        1520,
+        2450,
+        1310,
+        1890,
+        2760,
+        980,
+        1180,
+        1120,
+        1040,
+        1650
+    ],
+
+    "Keyword":[
+        "quiet",
+        "bakery",
+        "workspace",
+        "dessert",
+        "sweet",
+        "focus",
+        "comfortable",
+        "traditional",
+        "quality",
+        "photo"
     ]
 }
 
 df = pd.DataFrame(data)
 
-# ------------------------
-# Sidebar Filter
-# ------------------------
+# -----------------------------
+# Title
+# -----------------------------
 
-st.sidebar.header("Filters")
+st.title("☕ Cafe Review Analysis Dashboard")
 
-district = st.sidebar.selectbox(
-    "Select District",
-    ["All"] + list(df["District"].unique())
+st.markdown(
+"""
+Explore cafe ratings, review trends,
+and customer preferences through interactive visualizations.
+"""
 )
 
-theme = st.sidebar.selectbox(
-    "Select Theme",
-    ["All"] + list(df["Theme"].unique())
+# -----------------------------
+# Sidebar
+# -----------------------------
+
+st.sidebar.header("Filter Options")
+
+district_filter = st.sidebar.multiselect(
+    "District",
+    options=df["District"].unique(),
+    default=df["District"].unique()
 )
 
-filtered_df = df.copy()
+theme_filter = st.sidebar.multiselect(
+    "Theme",
+    options=df["Theme"].unique(),
+    default=df["Theme"].unique()
+)
 
-if district != "All":
+search_cafe = st.sidebar.text_input(
+    "Search Cafe"
+)
+
+filtered_df = df[
+    (df["District"].isin(district_filter))
+    &
+    (df["Theme"].isin(theme_filter))
+]
+
+if search_cafe:
     filtered_df = filtered_df[
-        filtered_df["District"] == district
+        filtered_df["Cafe"]
+        .str.contains(search_cafe, case=False)
     ]
 
-if theme != "All":
-    filtered_df = filtered_df[
-        filtered_df["Theme"] == theme
-    ]
-
-# ------------------------
+# -----------------------------
 # Metrics
-# ------------------------
+# -----------------------------
 
-col1, col2, col3 = st.columns(3)
+col1,col2,col3,col4 = st.columns(4)
 
 col1.metric(
     "Total Cafes",
@@ -109,7 +154,7 @@ col1.metric(
 
 col2.metric(
     "Average Rating",
-    round(filtered_df["Rating"].mean(), 2)
+    round(filtered_df["Rating"].mean(),2)
 )
 
 col3.metric(
@@ -117,9 +162,16 @@ col3.metric(
     int(filtered_df["ReviewCount"].sum())
 )
 
-# ------------------------
-# Data Table
-# ------------------------
+col4.metric(
+    "Popular Theme",
+    filtered_df["Theme"].mode()[0]
+)
+
+st.divider()
+
+# -----------------------------
+# Dataset
+# -----------------------------
 
 st.subheader("Cafe Dataset")
 
@@ -128,9 +180,9 @@ st.dataframe(
     use_container_width=True
 )
 
-# ------------------------
+# -----------------------------
 # Scatter Plot
-# ------------------------
+# -----------------------------
 
 st.subheader("Rating vs Review Count")
 
@@ -139,9 +191,8 @@ fig = px.scatter(
     x="Rating",
     y="ReviewCount",
     color="Theme",
-    hover_name="Cafe",
     size="ReviewCount",
-    title="Cafe Popularity Analysis"
+    hover_name="Cafe"
 )
 
 st.plotly_chart(
@@ -149,47 +200,116 @@ st.plotly_chart(
     use_container_width=True
 )
 
-# ------------------------
-# Pie Chart
-# ------------------------
+# -----------------------------
+# District Chart
+# -----------------------------
 
-st.subheader("Theme Distribution")
+col1,col2 = st.columns(2)
 
-theme_count = (
-    filtered_df["Theme"]
+with col1:
+
+    district_rating = (
+        filtered_df
+        .groupby("District")["Rating"]
+        .mean()
+        .reset_index()
+    )
+
+    fig2 = px.bar(
+        district_rating,
+        x="District",
+        y="Rating",
+        title="Average Rating by District"
+    )
+
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
+
+with col2:
+
+    theme_count = (
+        filtered_df["Theme"]
+        .value_counts()
+        .reset_index()
+    )
+
+    theme_count.columns=[
+        "Theme",
+        "Count"
+    ]
+
+    fig3 = px.pie(
+        theme_count,
+        names="Theme",
+        values="Count"
+    )
+
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
+
+# -----------------------------
+# Keyword Analysis
+# -----------------------------
+
+st.subheader("Popular Review Keywords")
+
+keyword_count = (
+    filtered_df["Keyword"]
     .value_counts()
     .reset_index()
 )
 
-theme_count.columns = [
-    "Theme",
+keyword_count.columns = [
+    "Keyword",
     "Count"
 ]
 
-fig2 = px.pie(
-    theme_count,
-    names="Theme",
-    values="Count",
-    title="Theme Distribution"
+fig4 = px.bar(
+    keyword_count,
+    x="Keyword",
+    y="Count"
 )
 
 st.plotly_chart(
-    fig2,
+    fig4,
     use_container_width=True
 )
 
-# ------------------------
-# Summary
-# ------------------------
+# -----------------------------
+# Top Reviewed Cafes
+# -----------------------------
 
-st.subheader("Dashboard Summary")
+st.subheader("Top Reviewed Cafes")
 
-st.write(
-    """
-    This dashboard helps users compare cafes
-    based on ratings, review counts, and themes.
+top_reviewed = (
+    filtered_df
+    .sort_values(
+        by="ReviewCount",
+        ascending=False
+    )
+)
 
-    Users can quickly identify highly-rated cafes,
-    popular districts, and customer-preferred themes.
-    """
+st.dataframe(
+    top_reviewed,
+    use_container_width=True
+)
+
+# -----------------------------
+# Insights
+# -----------------------------
+
+st.subheader("Dashboard Insights")
+
+st.success(
+f"""
+Total Cafes: {len(filtered_df)}
+
+Average Rating: {round(filtered_df['Rating'].mean(),2)}
+
+Total Reviews: {filtered_df['ReviewCount'].sum()}
+"""
 )
