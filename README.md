@@ -9,10 +9,11 @@ This dashboard analyzes cafe review data and provides interactive visualizations
 - District Filter
 - Theme Filter
 - Cafe Search
-- Rating Analysis
+- Rating vs Review Count Analysis
 - Theme Distribution
 - Keyword Analysis
 - Top Reviewed Cafes
+- Dashboard Insights
 
 ## Technologies
 
